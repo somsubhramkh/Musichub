@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow xmlns="http://www.springframework.org/schema/webflow"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/webflow
+http://www.springframework.org/schema/webflow/spring-webflow.xsd">
+ 
+<var name="order" class="musichub.model.UserOrder"/>
+
+<action-state id="orderProcess">
+        <evaluate expression="cartDAO.validate(requestParameters.cartId)" result="order.cart" />
+        <!-- <evaluate expression="cartDAO.getBillingAddress(1)" result="order.cart.user.billingAddress" /> -->
+        <transition to="orderSummaryForm" />
+    </action-state>
+
+
+<view-state id="orderSummaryForm" view="/WEB-INF/views/OrderSummary.jsp">
+
+<transition on="orderSummaryChecked" to="billingAddressForm"/>
+</view-state>
+
+ 
+<view-state id="billingAddressForm" view="/WEB-INF/views/BillingAddress.jsp" model="order">
+<transition on="billingAddressChecked" to="receiptForm"/>
+</view-state>
+<!-- 
+<view-state id="shippingAddressForm" view="/WEB-INF/views/ShippingAddress.jsp" model="order">
+<transition on="shippingAddressChecked" to="receiptForm"/>
+</view-state>
+ -->
+<view-state id="receiptForm" view="/WEB-INF/views/OrderReceipt.jsp">
+<transition on="receiptFormChecked" to="thankYouPage"/>
+</view-state>
+
+<view-state id="thankYouPage" view="/WEB-INF/views/Thanks.jsp">
+<transition to="endState"/>
+</view-state>
+
+<end-state id="endState" />
+
+</flow>

@@ -1,0 +1,170 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:security="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans.xsd
+http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context.xsd
+http://www.springframework.org/schema/mvc 
+http://www.springframework.org/schema/mvc/spring-mvc.xsd
+http://www.springframework.org/schema/tx
+http://www.springframework.org/schema/tx/spring-tx.xsd
+http://www.springframework.org/schema/security
+http://www.springframework.org/schema/security/spring-security.xsd">
+
+
+	<!-- Controller -->
+	<!-- ============================================================================================= -->
+	<context:component-scan base-package="musichub" />
+
+
+	<!-- declares explicit support for annotation-driven MVC controllers (i.e. 
+		@RequestMapping, @Controller -->
+	<!-- ================================================================================================== -->
+	<mvc:annotation-driven>
+	 <mvc:argument-resolvers>
+            <bean class="org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver" />
+        </mvc:argument-resolvers>
+	</mvc:annotation-driven>
+
+	<tx:annotation-driven />
+
+	<mvc:default-servlet-handler />
+	<mvc:resources mapping="/resources/**" location="/resources/"></mvc:resources>
+
+
+	<!-- Data Source Configuration -->
+	<!-- ================================================================================ -->
+
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close">
+		<property name="driverClassName" value="org.h2.Driver" />
+		<property name="url" value="jdbc:h2:tcp://localhost/~/test" />
+		<property name="username" value="sa" />
+		<property name="password" value="" />
+	</bean>
+
+
+	<!-- Creating the session factory bean -->
+	<!-- ========================================================================================== -->
+
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">org.hibernate.dialect.H2Dialect
+				</prop>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.hbm2ddl.auto">update</prop>
+			</props>
+		</property>
+
+		<property name="packagesToScan">
+			<array>
+				<value>musichub.model</value>
+			</array>
+		</property>
+	</bean>
+
+
+	<!-- Beans of DAO and Service -->
+	<!-- ================================================================================ -->
+
+	<bean id="productDAO" class="musichub.dao.ProductDAO">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+
+	<bean id="productService" class="musichub.service.ProductService">
+		<property name="productDAO" ref="productDAO"></property>
+	</bean>
+	
+	<bean id="userDAO" class="musichub.dao.UserDAO">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+
+	<bean id="userService" class="musichub.service.UserService">
+		<property name="userDAO" ref="userDAO"></property>
+	</bean>
+
+
+	<context:component-scan base-package="musichub" />
+
+	<tx:annotation-driven transaction-manager="transactionManager" />
+
+
+	<bean id="transactionManager"
+		class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+
+	<!-- View Resolver -->
+	<!-- ============================================================================================= -->
+	<bean
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="prefix">
+			<value>/WEB-INF/views/</value>
+		</property>
+		<property name="suffix">
+			<value>.jsp</value>
+		</property>
+	</bean>
+
+	<!-- For implementing Spring Security -->
+	<!-- ==================================================================================== -->
+
+
+
+	<bean id="dbUtil" class="musichub.dbutil.DbUtil" init-method="initialize">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<security:http auto-config="true">
+
+		<security:intercept-url pattern="/ProductAdmin/**"
+			access="hasRole('ROLE_ADMIN')" />
+			
+	<security:intercept-url pattern="/ProductDetails/**"
+			access="hasAnyRole('ROLE_USER','ROLE_ADMIN')" />
+					
+		<security:form-login login-page="/login"
+		 login-processing-url="/perform_login"
+			authentication-failure-url="/loginError" />
+		<security:csrf disabled="true" />
+	</security:http>
+
+	<security:authentication-manager>
+
+	<!-- 	<security:authentication-provider>
+			<security:jdbc-user-service
+				data-source-ref="dataSource"
+				users-by-username-query="select username,password,enabled from user_authentication where username=?"
+				authorities-by-username-query="select u1.username, u2.role from user_authentication u1, user_authorization u2 where u1.user_id = u2.user_id and u1.username =?" />
+		</security:authentication-provider> -->
+		
+		
+		<security:authentication-provider>
+			<security:jdbc-user-service
+				data-source-ref="dataSource"
+				users-by-username-query="select email,password,enabled from user where email=?"
+				authorities-by-username-query="select email, role from user where email = ?" />
+		</security:authentication-provider>
+	</security:authentication-manager>
+
+	<!-- for implementing multipart file -->
+	<!-- ====================================================================================================== -->
+
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="maxUploadSize" value="1024000" />
+	</bean>
+
+<context:annotation-config />
+	
+</beans>
+
+
+
+
